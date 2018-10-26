@@ -63,8 +63,10 @@ public class Gamepad extends LinearOpMode {
     private DcMotor armMotor;
     boolean spinCollector = false, buttonPressed = false;
     int armMin, armMax;
+    double servo1Timer;
 
     private Servo servo0;
+    private Servo servo1;
     private double servoPosition0;
 
     @Override
@@ -75,10 +77,11 @@ public class Gamepad extends LinearOpMode {
         // Initialize the hardware variables. Note that the strings used here as parameters
         // to 'get' must correspond to the names assigned during the robot configuration
         // step (using the FTC Robot Controller app on the phone).
-        leftDrive  = hardwareMap.get(DcMotor.class, "motor_0");
-        rightDrive = hardwareMap.get(DcMotor.class, "motor_1");
-        armMotor = hardwareMap.get(DcMotor.class, "motor_2");
-        servo0 = hardwareMap.get(Servo.class,"servo_0");
+        leftDrive  = hardwareMap.dcMotor.get("motor_0");
+        rightDrive = hardwareMap.dcMotor.get("motor_1");
+        armMotor = hardwareMap.dcMotor.get("motor_2");
+        servo0 = hardwareMap.servo.get("servo_0");
+        servo1 = hardwareMap.servo.get("servo_1");
 
         // Most robots need the motor on one side to be reversed to drive forward
         // Reverse the motor that runs backwards when connected directly to the battery
@@ -131,6 +134,28 @@ public class Gamepad extends LinearOpMode {
                 armMotor.setPower(0.0d);
             }
 
+            if (gamepad2.dpad_up && armMotor.getCurrentPosition() < armMax) {
+                armMotor.setPower(1.0d);
+            } else if (gamepad2.dpad_down && armMotor.getCurrentPosition() > armMin) {
+                armMotor.setPower(-1.0d);
+            }
+
+            if (gamepad2.y && (runtime.milliseconds() - servo1Timer) > 40d) {
+                servo1Timer = runtime.milliseconds();
+                double p = servo1.getPosition();
+                p += 0.015d;
+                if (p < 0.6d) {
+                    servo1.setPosition(p);
+                }
+            } else if (gamepad2.a && (runtime.milliseconds() - servo1Timer) > 40d) {
+                servo1Timer = runtime.milliseconds();
+                double p = servo1.getPosition();
+                p -= 0.015d;
+                if (p > 0d) {
+                    servo1.setPosition(p);
+                }
+            }
+
             if (gamepad2.x || gamepad1.x) {
                 if (!buttonPressed) {
                     spinCollector = !spinCollector;
@@ -146,10 +171,12 @@ public class Gamepad extends LinearOpMode {
             } else {
                 servo0.setPosition(0.5d);
             }
+
             // Show the elapsed game time and wheel power.
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addData("Motors", "left (%.2f), right (%.2f)", leftPower, rightPower);
             telemetry.addData("Arm", "min (%d) max (%d) cur (%d)", armMin, armMax, armMotor.getCurrentPosition());
+            telemetry.addData("Servo 1", "pos (%.2f)", servo1.getPosition());
             telemetry.update();
         }
     }
