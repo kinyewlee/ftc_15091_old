@@ -58,59 +58,26 @@ import org.firstinspires.ftc.robotcore.external.android.AndroidTextToSpeech;
  */
 
 @TeleOp(name="Gamepad", group="Linear Opmode")
-//1`@Disabled
+//@Disabled
 public class Gamepad extends LinearOpMode {
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
-    private DcMotor leftDrive;
-    private DcMotor rightDrive;
-    private DcMotor armMotor;
-    boolean spinCollector = false, buttonPressed = false, autoArmAdjust = true;
+    Hardware15091 robot = new Hardware15091();
     boolean gamapad2_x_state = false;
-    double armMin = 0.5d, armMax = 2.9d;
+
     double servo1Timer;
-    private AnalogInput armAngle;
-    AndroidTextToSpeech tts;
 
     // Setup a variable for each drive wheel to save power level for telemetry
     double leftPower;
     double rightPower;
 
-    private Servo servo2, servo3;
-    private Servo servo1;
-    private double servoPosition0;
-
     @Override
     public void runOpMode() {
+        robot.init(hardwareMap);
+
         telemetry.addData("Status", "Initialized");
         telemetry.update();
-
-        // Initialize the hardware variables. Note that the strings used here as parameters
-        // to 'get' must correspond to the names assigned during the robot configuration
-        // step (using the FTC Robot Controller app on the phone).
-        leftDrive  = hardwareMap.dcMotor.get("motor_0");
-        rightDrive = hardwareMap.dcMotor.get("motor_1");
-        armMotor = hardwareMap.dcMotor.get("motor_2");
-        servo1 = hardwareMap.servo.get("servo_1");
-        servo2 = hardwareMap.servo.get("servo_2");
-        servo3 = hardwareMap.servo.get("servo_3");
-        armAngle = hardwareMap.analogInput.get("arm_angle");
-
-        tts = new AndroidTextToSpeech();
-        tts.initialize();
-        tts.setLanguage("eng");
-
-        // Most robots need the motor on one side to be reversed to drive forward
-        // Reverse the motor that runs backwards when connected directly to the battery
-        leftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        leftDrive.setDirection(DcMotor.Direction.REVERSE);
-        leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        rightDrive.setDirection(DcMotor.Direction.FORWARD);
-        rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        tts.speak("Hello aztec, good luck.");
 
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
@@ -123,26 +90,11 @@ public class Gamepad extends LinearOpMode {
 
             User2();
 
-            if (gamepad2.x || gamepad1.x) {
-                if (!buttonPressed) {
-                    spinCollector = !spinCollector;
-                    buttonPressed = true;
-                }
-            } else {
-                buttonPressed = false;
-            }
-
-            if (spinCollector) {
-
-            } else {
-
-            }
-
             // Show the elapsed game time and wheel power.
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addData("Motors", "left (%.2f), right (%.2f)", leftPower, rightPower);
-            telemetry.addData("Servo 1", "pos (%.2f)", servo1.getPosition());
-            telemetry.addData("Arm", "pos (%.2f) pow (%.2f)", armAngle.getVoltage(), armMotor.getPower());
+            telemetry.addData("Servo 1", "pos (%.2f)", robot.handServo.getPosition());
+            telemetry.addData("Arm", "pos (%.2f) pow (%.2f)", robot.armAngle.getVoltage(), robot.armDrive.getPower());
             telemetry.update();
         }
     }
@@ -165,80 +117,77 @@ public class Gamepad extends LinearOpMode {
         leftPower    = Range.scale(drive + turn, -1d, 1d, -maxSpeed, maxSpeed) ;
         rightPower   = Range.scale(drive - turn, -1d, 1d, -maxSpeed, maxSpeed) ;
 
-        // Tank Mode uses one stick to control each wheel. dfdddfd2q
+        // Tank Mode uses one stick to control each wheel.
         // - This requires no math, but it is hard to drive forward slowly and keep straight.
         // leftPower  = -gamepad1.left_stick_y ;
         // rightPower = -gamepad1.right_stick_y ;
 
         // Send calculated power to wheels
-        leftDrive.setPower(leftPower);
-        rightDrive.setPower(rightPower);
+        robot.leftDrive.setPower(leftPower);
+        robot.rightDrive.setPower(rightPower);
     }
 
     void User2() {
         double p = 0d;
-        double s1_auto = servo1.getPosition(), s1_manual = servo1.getPosition();
+        double s1_auto = robot.armServo.getPosition(), s1_manual = robot.armServo.getPosition();
 
-        if (gamepad2.left_trigger > 0d && armAngle.getVoltage() > armMin) { //Arm going up
-            double m = armAngle.getVoltage() < 0.5d ? 0.5d : 1d;
+        if (gamepad2.left_trigger > 0d && robot.armAngle.getVoltage() > robot.ARM_MIN) { //Arm going up
+            double m = robot.armAngle.getVoltage() < robot.ARM_MIN + 0.15d ? robot.ARM_POWER : 1d;
             p = Range.scale(gamepad2.left_trigger, 0d, 1d, 0d, m);
-        } else if (gamepad2.right_trigger > 0d && armAngle.getVoltage() < armMax) { //Arm going down
-            double m = armAngle.getVoltage() > 2.4d ? 0.5d : 1d;
+        } else if (gamepad2.right_trigger > 0d && robot.armAngle.getVoltage() < robot.ARM_MAX) { //Arm going down
+            double m = robot.armAngle.getVoltage() > robot.ARM_MAX - 0.15d ? robot.ARM_POWER : 1d;
             p = -Range.scale(gamepad2.right_trigger, 0d, 1d, 0d, m);
         }
 
-        armMotor.setPower(p);
+        robot.armDrive.setPower(p);
 
         if (gamepad2.left_trigger > 0d || gamepad2.right_trigger > 0d) {
-            if (armAngle.getVoltage() > 2.9d || armAngle.getVoltage() < 0.8d) {
+            if (robot.armAngle.getVoltage() > 2.9d || robot.armAngle.getVoltage() < 0.8d) {
                 s1_auto = 0d;
-            } else if (armAngle.getVoltage() > 1d && armAngle.getVoltage() < 1.78d) {
+            } else if (robot.armAngle.getVoltage() > 1d && robot.armAngle.getVoltage() < 1.78d) {
                 s1_auto = 1d;
-            } else if (armAngle.getVoltage() > 1.78d && armAngle.getVoltage() < 2.9d) {
-                s1_auto = Range.scale(armAngle.getVoltage(), 1.78d, 2.9d, 0.95d, 0.05d);
+            } else if (robot.armAngle.getVoltage() > 1.78d && robot.armAngle.getVoltage() < 2.9d) {
+                s1_auto = Range.scale(robot.armAngle.getVoltage(), 1.78d, 2.9d, 0.95d, 0.05d);
             }
         }
 
-        if (gamepad2.y && (runtime.milliseconds() - servo1Timer) > 35d) {
+        if (gamepad2.y && (runtime.milliseconds() - servo1Timer) > robot.ARM_SERVO_SPEED) {
             servo1Timer = runtime.milliseconds();
-            s1_manual = servo1.getPosition() + 0.015d;
-        } else if (gamepad2.a && (runtime.milliseconds() - servo1Timer) > 35d) {
+            s1_manual = robot.armServo.getPosition() + 0.015d;
+        } else if (gamepad2.a && (runtime.milliseconds() - servo1Timer) > robot.ARM_SERVO_SPEED) {
             servo1Timer = runtime.milliseconds();
-            s1_manual = servo1.getPosition() - 0.015d;
+            s1_manual = robot.armServo.getPosition() - 0.015d;
         }
 
-        if (gamepad2.x) {
-            if (!gamapad2_x_state) {
-                gamapad2_x_state = true;
-                autoArmAdjust = !autoArmAdjust;
+        if (gamepad2.x != gamapad2_x_state) {
+            gamapad2_x_state = gamepad2.x;
+            if (gamepad2.x) {
+                robot.toggleAutoArm();
 
-                if (autoArmAdjust) {
-                    tts.speak("Auto Arm enabled.");
-                } else {
-                    tts.speak("Auto Arm disabled.");
+                if (!robot.autoArm) {
                     s1_manual = 0d;
                 }
             }
         }
         else {
-            gamapad2_x_state = false;
+            gamapad2_x_state = gamepad2.x;
         }
 
-        if (autoArmAdjust) {
-            servo1.setPosition(s1_auto);
+        if (robot.autoArm) {
+            robot.armServo.setPosition(s1_auto);
         } else {
-            servo1.setPosition(s1_manual);
+            robot.armServo.setPosition(s1_manual);
         }
 
         double s2 = Range.scale(gamepad2.left_stick_x, -1d, 1d, 0.0d, 1d);
         double s3 = 0.2d, s3_mid = 0.2d;
 
-        if (autoArmAdjust) {
-            if (armAngle.getVoltage() < 1.18d && armAngle.getVoltage() > 0.9d) {
-                s3 = s3_mid = Range.scale(armAngle.getVoltage(), 1.18d, 0.9d, 0.4d, 0.7d);
+        if (robot.autoArm) {
+            if (robot.armAngle.getVoltage() < 1.18d && robot.armAngle.getVoltage() > 0.9d) {
+                s3 = s3_mid = Range.scale(robot.armAngle.getVoltage(), 1.18d, 0.9d, 0.4d, 0.7d);
             }
 
-            if (armAngle.getVoltage() < 0.8d) {
+            if (robot.armAngle.getVoltage() < 0.8d) {
                 s3 = 1d;
             }
         } else {
@@ -251,8 +200,8 @@ public class Gamepad extends LinearOpMode {
             s3 = Range.scale(gamepad2.left_stick_y, -1d, 0d, 0.0d, s3_mid);
         }
 
-        servo2.setPosition(s2);
-        servo3.setPosition(s3);
+        robot.netServo.setPosition(s2);
+        robot.handServo.setPosition(s3);
 
     }
 }

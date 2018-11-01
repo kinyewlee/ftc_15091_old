@@ -52,7 +52,7 @@ import com.qualcomm.robotcore.util.Range;
  */
 
 @TeleOp(name="Rotate Servo", group="Linear Opmode")
-//@Disabled
+@Disabled
 public class RotateServo extends LinearOpMode {
 
     // Declare OpMode members.
