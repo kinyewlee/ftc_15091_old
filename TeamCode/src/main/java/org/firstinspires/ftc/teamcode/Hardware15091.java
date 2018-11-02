@@ -37,6 +37,10 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.android.AndroidAccelerometer;
+import org.firstinspires.ftc.robotcore.external.android.AndroidGyroscope;
+import org.firstinspires.ftc.robotcore.external.android.AndroidOrientation;
+import org.firstinspires.ftc.robotcore.external.android.AndroidSoundPool;
 import org.firstinspires.ftc.robotcore.external.android.AndroidTextToSpeech;
 
 /**
@@ -66,10 +70,13 @@ public class Hardware15091
     public Servo    netServo   = null;
     public AnalogInput armAngle = null;
     public AndroidTextToSpeech tts = null;
+    public AndroidGyroscope gyro = null;
+    public AndroidOrientation orientation = null;
+    public AndroidAccelerometer accelerometer = null;
     public ColorSensor sensorColor = null;
     public DistanceSensor sensorDistance = null;
 
-    public static final double ARM_POWER    =  0.45 ;
+    public static final double ARM_POWER    =  0.3;
     public static final double ARM_MIN = 0.5d, ARM_MAX = 2.9d;
     public static final double ARM_SERVO_SPEED = 35d;
 
@@ -116,6 +123,10 @@ public class Hardware15091
         tts = new AndroidTextToSpeech();
         tts.initialize();
         tts.setLanguage("eng");
+
+        gyro = new AndroidGyroscope();
+        accelerometer = new AndroidAccelerometer();
+        orientation = new AndroidOrientation();
 
         // Set all motors to run without encoders.
         // May want to use RUN_USING_ENCODERS if encoders are installed.
