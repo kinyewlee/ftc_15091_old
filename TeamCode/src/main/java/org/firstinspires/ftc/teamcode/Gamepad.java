@@ -65,6 +65,7 @@ public class Gamepad extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
     Hardware15091 robot = new Hardware15091();
     boolean gamapad2_x_state = false;
+    boolean gamapad2_b_state = false;
 
     double servo1Timer;
 
@@ -94,7 +95,7 @@ public class Gamepad extends LinearOpMode {
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addData("Motors", "left (%.2f), right (%.2f)", leftPower, rightPower);
             telemetry.addData("Servo 1", "pos (%.2f)", robot.handServo.getPosition());
-            telemetry.addData("Arm", "pos (%.2f) pow (%.2f)", robot.armAngle.getVoltage(), robot.armDrive.getPower());
+            telemetry.addData("Arm", "pos (%.2f) pow (%.2f) enc (%d)", robot.armAngle.getVoltage(), robot.armDrive.getPower(), robot.armDrive.getCurrentPosition());
             telemetry.update();
         }
     }
@@ -112,8 +113,8 @@ public class Gamepad extends LinearOpMode {
         } else if (gamepad1.right_bumper) {
             maxSpeed = 1d;
         }
-        double drive = -gamepad1.left_stick_y;
-        double turn  =  gamepad1.right_stick_x;
+        double drive = -gamepad1.right_stick_y;
+        double turn  = gamepad1.left_stick_x;
         leftPower    = Range.scale(drive + turn, -1d, 1d, -maxSpeed, maxSpeed) ;
         rightPower   = Range.scale(drive - turn, -1d, 1d, -maxSpeed, maxSpeed) ;
 
@@ -139,15 +140,34 @@ public class Gamepad extends LinearOpMode {
             p = -Range.scale(gamepad2.right_trigger, 0d, 1d, 0d, m);
         }
 
+        if (robot.hookSequence > 0) {
+            if (robot.hookSequence == 3) {
+                robot.autoArm = false;
+                s1_manual = 0d;
+                robot.armDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                robot.armDrive.setTargetPosition(-7720);
+                robot.hookSequence = 2;
+            }
+            if (robot.hookSequence == 2 && !robot.armDrive.isBusy()) {
+                robot.hookSequence = 1;
+            }
+            if (robot.hookSequence == 1) {
+                robot.tts.speak("Hook sequence complete.");
+                robot.hookSequence = 0;
+                robot.armDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            }
+            p = 0.45d;
+        }
+
         robot.armDrive.setPower(p);
 
         if (gamepad2.left_trigger > 0d || gamepad2.right_trigger > 0d) {
-            if (robot.armAngle.getVoltage() > 2.9d || robot.armAngle.getVoltage() < 0.8d) {
+            if (robot.armAngle.getVoltage() > robot.ARM_MAX || robot.armAngle.getVoltage() < (robot.ARM_MIN + 0.3d)) {
                 s1_auto = 0d;
-            } else if (robot.armAngle.getVoltage() > 1d && robot.armAngle.getVoltage() < 1.78d) {
+            } else if (robot.armAngle.getVoltage() > 1d && robot.armAngle.getVoltage() < 1.75d) {
                 s1_auto = 1d;
-            } else if (robot.armAngle.getVoltage() > 1.78d && robot.armAngle.getVoltage() < 2.9d) {
-                s1_auto = Range.scale(robot.armAngle.getVoltage(), 1.78d, 2.9d, 0.95d, 0.05d);
+            } else if (robot.armAngle.getVoltage() > 1.75d && robot.armAngle.getVoltage() < robot.ARM_MAX) {
+                s1_auto = Range.scale(robot.armAngle.getVoltage(), 1.75d, 2.3d, 0.95d, 0.45d);
             }
         }
 
@@ -173,6 +193,18 @@ public class Gamepad extends LinearOpMode {
             gamapad2_x_state = gamepad2.x;
         }
 
+        if (gamepad2.b != gamapad2_b_state) {
+            gamapad2_b_state = gamepad2.b;
+            if (gamepad2.b) {
+                robot.initiateHook();
+            }
+        }
+        else {
+            gamapad2_b_state = gamepad2.b;
+        }
+
+
+
         if (robot.autoArm) {
             robot.armServo.setPosition(s1_auto);
         } else {
@@ -180,18 +212,18 @@ public class Gamepad extends LinearOpMode {
         }
 
         double s2 = Range.scale(gamepad2.left_stick_x, -1d, 1d, 0.0d, 1d);
-        double s3 = 0.2d, s3_mid = 0.2d;
+        double s3 = 0.8d, s3_mid = 0.8d;
 
         if (robot.autoArm) {
-            if (robot.armAngle.getVoltage() < 1.18d && robot.armAngle.getVoltage() > 0.9d) {
-                s3 = s3_mid = Range.scale(robot.armAngle.getVoltage(), 1.18d, 0.9d, 0.4d, 0.7d);
+            if (robot.armAngle.getVoltage() < 1.8d && robot.armAngle.getVoltage() > 0.9d) {
+                s3 = s3_mid = Range.scale(robot.armAngle.getVoltage(), 1.8d, 0.9d, 1d, 0.55d);
             }
 
-            if (robot.armAngle.getVoltage() < 0.8d) {
-                s3 = 1d;
+            if (robot.armAngle.getVoltage() < (robot.ARM_MIN + 0.2d)) {
+                s3 = 0d;
             }
         } else {
-            s3 = s3_mid = 1d;
+            s3 = s3_mid = 0d;
         }
 
         if (gamepad2.left_stick_y > 0d) {

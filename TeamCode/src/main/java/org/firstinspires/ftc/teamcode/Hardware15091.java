@@ -76,8 +76,8 @@ public class Hardware15091
     public ColorSensor sensorColor = null;
     public DistanceSensor sensorDistance = null;
 
-    public static final double ARM_POWER    =  0.3;
-    public static final double ARM_MIN = 0.5d, ARM_MAX = 2.9d;
+    public static final double ARM_POWER    =  0.3d;
+    public static final double ARM_MIN = 0.4d, ARM_MAX = 2.45d;
     public static final double ARM_SERVO_SPEED = 35d;
 
     public boolean autoArm = true;
@@ -87,6 +87,14 @@ public class Hardware15091
             tts.speak("Auto Arm enabled.");
         } else {
             tts.speak("Auto Arm disabled.");
+        }
+    }
+
+    public int hookSequence = 0;
+    public void initiateHook() {
+        if (hookSequence == 0) {
+            hookSequence = 3;
+            tts.speak("Initiate hook sequence");
         }
     }
 
@@ -148,11 +156,15 @@ public class Hardware15091
     public void InitArm()
     {
         armServo.setPosition(0d);
-        handServo.setPosition(1d);
+        handServo.setPosition(0d);
+        period.reset();
 
-        while(armAngle.getVoltage() > ARM_MIN) {
-            armDrive.setPower(ARM_POWER);
+        while(armAngle.getVoltage() > ARM_MIN && (period.seconds() < 10d)) {
+            armDrive.setPower(0.25d);
         }
+
+        armDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        armDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
  }
 

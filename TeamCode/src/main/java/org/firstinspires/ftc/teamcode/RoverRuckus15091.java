@@ -79,6 +79,7 @@ public class RoverRuckus15091 extends LinearOpMode {
                                                       (WHEEL_DIAMETER_INCHES * 3.1415);
     static final double     DRIVE_SPEED             = 0.6;
     static final double     TURN_SPEED              = 0.5;
+    public int hookSequence = 0;
 
     @Override
     public void runOpMode() {
@@ -116,6 +117,8 @@ public class RoverRuckus15091 extends LinearOpMode {
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
+
+        idle();
     }
 
     /*
