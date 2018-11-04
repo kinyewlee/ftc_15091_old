@@ -113,12 +113,43 @@ public class RoverRuckus15091 extends LinearOpMode {
         // so, first thing to do is unlatch
         unlatch();
 
+        // Then the robot reverse 5000 rev
+        drive(-1000);
+
+        turn(1000);
+
         telemetry.addData("Path", "Complete");
         telemetry.update();
 
         idle();
     }
+    public void turn(int distance) {
+        robot.leftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        robot.leftDrive.setTargetPosition(distance);
+        robot.leftDrive.setPower(.3);
+        robot.rightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        robot.rightDrive.setTargetPosition(-distance);
+        robot.rightDrive.setPower(.3);
+        while (robot.leftDrive.isBusy() || robot.rightDrive.isBusy())
+        {}
+        robot.leftDrive.setPower(0);
+        robot.rightDrive.setPower(0);
+        robot.tts.speak("Hello World");
+    }
+    public void drive(int distance) {
 
+        robot.leftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        robot.leftDrive.setTargetPosition(distance);
+        robot.leftDrive.setPower(.3);
+        robot.rightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        robot.rightDrive.setTargetPosition(distance);
+        robot.rightDrive.setPower(.3);
+        while (robot.leftDrive.isBusy() || robot.rightDrive.isBusy())
+        {}
+        robot.leftDrive.setPower(0);
+        robot.rightDrive.setPower(0);
+        robot.tts.speak("Hello World");
+    }
     public void unlatch()
     {
         robot.armDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
