@@ -109,16 +109,27 @@ public class RoverRuckus15091 extends LinearOpMode {
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
 
-        // Step through each leg of the path,
-        // Note: Reverse movement is obtained by setting a negative distance (not speed)
-        encoderDrive(DRIVE_SPEED,  12,  12, 5.0);  // S1: Forward 47 Inches with 5 Sec timeout
-        //encoderDrive(TURN_SPEED,   12, -12, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
-        encoderDrive(DRIVE_SPEED, -12, -12, 4.0);  // S3: Reverse 24 Inches with 4 Sec timeout
+        // The robot will be hung on the handle to start
+        // so, first thing to do is unlatch
+        unlatch();
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
 
         idle();
+    }
+
+    public void unlatch()
+    {
+        robot.armDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        robot.armDrive.setTargetPosition(-5000);
+        robot.armDrive.setPower(0.2d);
+        while(robot.armDrive.isBusy())
+        {
+            //wait for motor to finish
+        }
+        robot.armDrive.setPower(0d);
+        robot.tts.speak("Unlatch complete");
     }
 
     /*
