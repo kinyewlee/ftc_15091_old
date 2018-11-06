@@ -66,7 +66,8 @@ public class Gamepad extends LinearOpMode {
     Hardware15091 robot = new Hardware15091();
     boolean gamapad2_x_state = false;
     boolean gamapad2_b_state = false;
-
+    boolean gamapad2_left_bumper_state = false;
+    boolean gamapad2_right_bumper_state = false;
     double servo1Timer;
 
     // Setup a variable for each drive wheel to save power level for telemetry
@@ -94,7 +95,7 @@ public class Gamepad extends LinearOpMode {
             // Show the elapsed game time and wheel power.
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addData("Motors", "left (%.2f), right (%.2f)", leftPower, rightPower);
-            telemetry.addData("Servo 1", "pos (%.2f)", robot.handServo.getPosition());
+            telemetry.addData("Servo", "Arm (%.2f) Hand (%.2f)", robot.armServo.getPosition(), robot.handServo.getPosition());
             telemetry.addData("Arm", "pos (%.2f) pow (%.2f) enc (%d)", robot.armAngle.getVoltage(), robot.armDrive.getPower(), robot.armDrive.getCurrentPosition());
             telemetry.update();
         }
@@ -140,35 +141,85 @@ public class Gamepad extends LinearOpMode {
             p = -Range.scale(gamepad2.right_trigger, 0d, 1d, 0d, m);
         }
 
-        if (robot.hookSequence > 0) {
-            if (robot.hookSequence == 3) {
+        if (robot.armSequence > 0 && robot.armSequence <= 3) {
+            if (robot.armSequence == 3) {
                 robot.autoArm = false;
                 s1_manual = 0d;
                 robot.armDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                robot.armDrive.setTargetPosition(-7720);
-                robot.hookSequence = 2;
+                robot.armDrive.setTargetPosition(-7800);
+                robot.armSequence = 2;
             }
-            if (robot.hookSequence == 2 && !robot.armDrive.isBusy()) {
-                robot.hookSequence = 1;
+            if (robot.armSequence == 2 && !robot.armDrive.isBusy()) {
+                robot.armSequence = 1;
             }
-            if (robot.hookSequence == 1) {
+            if (robot.armSequence == 1) {
                 robot.tts.speak("Hook sequence complete.");
-                robot.hookSequence = 0;
+                robot.armSequence = 0;
                 robot.armDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             }
             p = 0.45d;
         }
 
+        if (robot.armSequence > 3 && robot.armSequence <= 6) {
+            if (robot.armSequence == 6) {
+                robot.armDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                robot.armDrive.setTargetPosition(-16330);
+                robot.armSequence = 5;
+            }
+            if (robot.armSequence == 5 && !robot.armDrive.isBusy()) {
+                robot.armSequence = 4;
+            }
+            if (robot.armSequence == 4) {
+                robot.armSequence = 0;
+                robot.armDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            }
+            p = 1d;
+        }
+
+        if (robot.armSequence > 6 && robot.armSequence <= 9) {
+            if (robot.armSequence == 9) {
+                robot.armDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                robot.armDrive.setTargetPosition(-16330);
+                robot.armSequence = 8;
+            }
+            if (robot.armSequence == 8 && !robot.armDrive.isBusy()) {
+                robot.armSequence = 7;
+            }
+            if (robot.armSequence == 7) {
+                robot.armSequence = 0;
+                robot.armDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            }
+            p = 1d;
+        }
+
+        if (gamepad2.left_bumper != gamapad2_left_bumper_state) {
+            gamapad2_left_bumper_state = gamepad2.left_bumper;
+            if (gamepad2.left_bumper) {
+                robot.initateShoot();
+            }
+        }
+        else {
+            gamapad2_left_bumper_state = gamepad2.left_bumper;
+        }
+
+        if (gamepad2.right_bumper != gamapad2_right_bumper_state) {
+            gamapad2_right_bumper_state = gamepad2.right_bumper;
+            if (gamepad2.right_bumper) {
+                robot.initateScoop();
+            }
+        }
+        else {
+            gamapad2_right_bumper_state = gamepad2.right_bumper;
+        }
+
         robot.armDrive.setPower(p);
 
-        if (gamepad2.left_trigger > 0d || gamepad2.right_trigger > 0d) {
-            if (robot.armAngle.getVoltage() > robot.ARM_MAX || robot.armAngle.getVoltage() < (robot.ARM_MIN + 0.3d)) {
-                s1_auto = 0d;
-            } else if (robot.armAngle.getVoltage() > 1d && robot.armAngle.getVoltage() < 1.75d) {
-                s1_auto = 1d;
-            } else if (robot.armAngle.getVoltage() > 1.75d && robot.armAngle.getVoltage() < robot.ARM_MAX) {
-                s1_auto = Range.scale(robot.armAngle.getVoltage(), 1.75d, 2.3d, 0.95d, 0.45d);
-            }
+        if (robot.armAngle.getVoltage() > robot.ARM_MAX || robot.armAngle.getVoltage() < (robot.ARM_MIN + 0.3d)) {
+            s1_auto = 0d;
+        } else if (robot.armAngle.getVoltage() > (robot.ARM_MIN + 0.3d) && robot.armAngle.getVoltage() < 1.72d) {
+            s1_auto = 1d;
+        } else if (robot.armAngle.getVoltage() > 1.75d && robot.armAngle.getVoltage() < robot.ARM_MAX) {
+            s1_auto = Range.scale(robot.armAngle.getVoltage(), 1.75d, robot.ARM_MAX, 1d, 0.65d);
         }
 
         if (gamepad2.y && (runtime.milliseconds() - servo1Timer) > robot.ARM_SERVO_SPEED) {
@@ -203,8 +254,6 @@ public class Gamepad extends LinearOpMode {
             gamapad2_b_state = gamepad2.b;
         }
 
-
-
         if (robot.autoArm) {
             robot.armServo.setPosition(s1_auto);
         } else {
@@ -215,11 +264,13 @@ public class Gamepad extends LinearOpMode {
         double s3 = 0.8d, s3_mid = 0.8d;
 
         if (robot.autoArm) {
-            if (robot.armAngle.getVoltage() < 1.8d && robot.armAngle.getVoltage() > 0.9d) {
-                s3 = s3_mid = Range.scale(robot.armAngle.getVoltage(), 1.8d, 0.9d, 1d, 0.55d);
+            if (robot.armAngle.getVoltage() < 1.75d && robot.armAngle.getVoltage() > 0.75d) {
+                s3 = s3_mid = Range.scale(robot.armAngle.getVoltage(), 1.75d, 0.75d, 1d, 0.45d);
+            } else if (robot.armAngle.getVoltage() < robot.ARM_MAX && robot.armAngle.getVoltage() > 1.75d) {
+                s3 = 1d;
             }
 
-            if (robot.armAngle.getVoltage() < (robot.ARM_MIN + 0.2d)) {
+            if (robot.armAngle.getVoltage() < (robot.ARM_MIN + 0.3d)) {
                 s3 = 0d;
             }
         } else {

@@ -76,8 +76,8 @@ public class Hardware15091
     public ColorSensor sensorColor = null;
     public DistanceSensor sensorDistance = null;
 
-    public static final double ARM_POWER    =  0.3d;
-    public static final double ARM_MIN = 0.4d, ARM_MAX = 2.45d;
+    public static final double ARM_POWER    =  0.4d;
+    public static final double ARM_MIN = 0.35d, ARM_MAX = 2.08d;
     public static final double ARM_SERVO_SPEED = 35d;
 
     public boolean autoArm = true;
@@ -87,14 +87,27 @@ public class Hardware15091
             tts.speak("Auto Arm enabled.");
         } else {
             tts.speak("Auto Arm disabled.");
+    }
+    }
+
+    public int armSequence = 0;
+
+    public void initiateHook() {
+        if (armSequence == 0) {
+            armSequence = 3;
+            tts.speak("Initiate hook sequence");
         }
     }
 
-    public int hookSequence = 0;
-    public void initiateHook() {
-        if (hookSequence == 0) {
-            hookSequence = 3;
-            tts.speak("Initiate hook sequence");
+    public  void initateScoop() {
+        if (armSequence == 0) {
+            armSequence = 6;
+        }
+    }
+
+    public  void initateShoot() {
+        if (armSequence == 0) {
+            armSequence = 9;
         }
     }
 
@@ -165,6 +178,7 @@ public class Hardware15091
 
         armDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         armDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        armDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }
  }
 
